@@ -1,0 +1,92 @@
+// --- Flyway(MySQL) を plugin 実行クラスパスへ ---
+buildscript {
+    repositories { mavenCentral() }
+    dependencies {
+        classpath "org.flywaydb:flyway-mysql:10.15.0"
+    }
+}
+
+plugins {
+    id "java"
+    id "org.flywaydb.flyway" version "10.15.0"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.AMAZON
+    }
+}
+
+repositories { mavenCentral() }
+
+// --- JDBC ドライバ（プロジェクト実行クラスパス） ---
+dependencies {
+    runtimeOnly "com.mysql:mysql-connector-j:8.0.33"
+}
+
+// --- Flyway 設定（ここが要） ---
+flyway {
+    url = "jdbc:mysql://localhost:3306/hwhub_db?useSSL=false&allowPublicKeyRetrieval=true"
+    user = "hwhub"
+    password = "hwhub"
+    driver = "com.mysql.cj.jdbc.Driver"
+    locations = ["filesystem:flyway/sql"]
+    cleanDisabled = false
+}
+
+// --- SchemaSpy を JavaExec で叩く（プラグイン不要・確実） ---
+configurations { schemaspy }
+
+dependencies {
+    schemaspy "org.schemaspy:schemaspy:7.0.2"
+    schemaspy "com.mysql:mysql-connector-j:8.0.33"
+    schemaspy "org.slf4j:slf4j-simple:2.0.13"
+}
+
+tasks.register("schemaspy", JavaExec) {
+    group = "documentation"
+    description = "Generate DB docs with SchemaSpy"
+    classpath = configurations.schemaspy
+    mainClass = "org.schemaspy.Main"
+
+    def outDir = "$buildDir/schemaspy"
+    def propsFile = file("$buildDir/schemaspy-conn.properties")
+
+    def graphvizHome = "C:\\Program Files\\Graphviz"
+    def dotPath = graphvizHome + "\\bin\\dot.exe"
+    def dotDir  = new File(dotPath).parent
+
+    environment "PATH", dotDir + File.pathSeparator + System.getenv("PATH")
+    environment "GRAPHVIZ_DOT", dotPath
+
+    doFirst {
+        file(outDir).mkdirs()
+        propsFile.text = """useSSL=false
+allowPublicKeyRetrieval=true
+serverTimezone=Asia/Tokyo
+"""
+    }
+
+    args = [
+            "-t","mysql",
+            "-host","localhost",
+            "-port","3306",
+            "-db","hwhub_db",
+            "-u","hwhub",
+            "-p","hwhub",
+            "-s","hwhub_db",
+            "-o", outDir,
+            "-dp", configurations.schemaspy.asPath,
+            "-connprops", propsFile.absolutePath,
+            "-vizjs"
+    ]
+}
+
+tasks.register("seedDevData", org.flywaydb.gradle.task.FlywayMigrateTask) {
+    group = "flyway"
+    description = "Apply dev/test-only data migrations (flyway/sql-test)."
+    dependsOn("flywayMigrate")
+
+    locations = ["filesystem:flyway/sql-test"]
+}
