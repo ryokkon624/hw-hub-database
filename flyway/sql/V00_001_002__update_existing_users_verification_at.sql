@@ -3,6 +3,9 @@
    ============================================================ */
 UPDATE m_user 
 SET
-    email_verified_at = now(6) 
+    email_verified_at = now(6)
+    , update_user_id = 1
+    , update_program = 'DATA_PATCH'
+    , updated_at = now(6) 
 WHERE
     email_verified_at IS NULL;
