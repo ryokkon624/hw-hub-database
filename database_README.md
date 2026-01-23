@@ -113,6 +113,164 @@ SchemaSpy の生成物は `build/schemaspy/` 以下に出力されます。
 
 ---
 
+
+## STG 環境（AWS RDS）への Flyway 適用手順（運用者向け）
+
+> ⚠️ 本手順は **STG 環境の RDS に対して直接マイグレーションを適用**します。  
+> 実行できるのは、以下の条件を満たす運用者に限られます。
+>
+> - STG 用 EC2 踏み台へ SSH 接続できる`stg.pem`（秘密鍵）を保持していること
+>
+> いずれかが満たされない場合、実行はできません。
+
+---
+
+### STG 環境への接続経路（構成図）
+
+STG 環境の RDS は Private Subnet に配置されているため、  
+ローカル PC から直接接続することはできません。
+
+そのため、以下の経路で Flyway を実行します。
+
+- ローカル PC で Flyway（Docker）を起動
+- SSH トンネルを使って EC2 踏み台経由で RDS に接続
+
+```mermaid
+flowchart LR
+    DevPC["開発者PC<br/>(Local)"] -->|1. docker run flyway| Flyway["Flyway (Docker)"]
+
+    Flyway -->|2. JDBC接続<br/>host.docker.internal:13306| Tunnel["SSH Tunnel<br/>localhost:13306"]
+
+    Tunnel -->|3. SSH Port Forward| Bastion["EC2 踏み台<br/>(Public Subnet)"]
+
+    Bastion -->|4. VPC内接続| RDS["RDS MySQL<br/>(Private Subnet)"]
+
+    subgraph Local["開発者環境"]
+        DevPC
+        Flyway
+        Tunnel
+    end
+
+    subgraph AWS["AWS VPC (STG)"]
+        Bastion
+        RDS
+    end
+```
+
+---
+
+### 概要
+
+本番相当の STG 環境では RDS は Private Subnet に配置されているため、  
+**EC2 踏み台経由の SSH トンネル**を利用してローカルから Flyway を実行します。
+
+実施フローは以下の通りです。
+
+1. EC2 踏み台経由で SSH トンネルを確立
+2. ローカル PC から Docker 版 Flyway で RDS に接続
+3. `info` で状態確認後、`migrate` を実行
+
+---
+
+### 1) SSH トンネルの確立
+
+EC2 の **パブリック IP は起動のたびに変わる**ため、事前に AWS コンソールで最新の IP を確認してください。
+
+以下は PowerShell / Git Bash の例です。
+
+```powershell
+ssh -i stg.pem -N -L 13306:hwhub-mysql-stg.c1o42eyisztt.ap-northeast-1.rds.amazonaws.com:3306 ec2-user@<EC2のパブリックIP>
+```
+
+- ローカルの `13306` ポート → STG RDS の `3306` に転送されます
+- このターミナルは **Flyway 実行中は閉じないでください**
+
+---
+
+### 2) Docker 版 Flyway の実行
+
+別のターミナルを開き、以下の手順で実行します。
+
+#### 2-1) DB パスワードの設定（例）
+
+```powershell
+$DB_PASSWORD = "********"
+```
+
+---
+
+#### 2-2) Flyway の状態確認（info）
+
+```powershell
+docker run --rm `
+  -v "${PWD}\flyway\sql:/flyway/sql" `
+  flyway/flyway:10 `
+  -url="jdbc:mysql://host.docker.internal:13306/hwhub_db?useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Tokyo&sessionVariables=time_zone='%2B09:00'" `
+  -user="hwhub" `
+  -password="$DB_PASSWORD" `
+  info
+```
+
+---
+
+#### 2-3) マイグレーションの適用（migrate）
+
+```powershell
+docker run --rm `
+  -v "${PWD}\flyway\sql:/flyway/sql" `
+  flyway/flyway:10 `
+  -url="jdbc:mysql://host.docker.internal:13306/hwhub_db?useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Tokyo&sessionVariables=time_zone='%2B09:00'" `
+  -user="hwhub" `
+  -password="$DB_PASSWORD" `
+  migrate
+```
+
+---
+
+### 3) JDBC URL に関する注意（重要）
+
+STG 環境では **MySQL セッションの time_zone を JST に固定**するため、  
+JDBC URL には必ず以下のパラメータを含めてください。
+
+```
+serverTimezone=Asia/Tokyo
+sessionVariables=time_zone='%2B09:00'
+```
+
+これらが無い場合、以下のカラムが **UTC で記録されてしまう事故**が発生します。
+
+- `CURRENT_TIMESTAMP`
+- `NOW()`
+- `ON UPDATE CURRENT_TIMESTAMP`
+
+---
+
+### 4) 適用結果の確認
+
+RDS 上で以下の SQL を実行し、想定通りのバージョンが適用されていることを確認してください。
+
+```sql
+SELECT * FROM flyway_schema_history ORDER BY installed_rank DESC;
+```
+
+---
+
+### 注意事項
+
+- 本手順は **STG 環境のスキーマを即時変更**します
+- 実行前に必ず以下を確認してください
+  - 適用対象の Flyway バージョン
+  - SQL の内容
+  - 影響範囲
+- 原則として、レビュー完了後に実行してください
+
+---
+
+> ※ 本番環境（PROD）への適用手順は、将来 STG 手順をベースに別途定義します。
+
+
+---
+
 ## トラブルシュート
 
 ### Flyway が DB に接続できない
