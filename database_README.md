@@ -205,7 +205,7 @@ $DB_PASSWORD = "********"
 docker run --rm `
   -v "${PWD}\flyway\sql:/flyway/sql" `
   flyway/flyway:10 `
-  -url="jdbc:mysql://host.docker.internal:13306/hwhub_db?useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Tokyo&sessionVariables=time_zone='%2B09:00'" `
+  -url="jdbc:mysql://host.docker.internal:13306/hwhub_db?useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Tokyo&sessionVariables=time_zone='+09:00'" `
   -user="hwhub" `
   -password="$DB_PASSWORD" `
   info
@@ -219,11 +219,15 @@ docker run --rm `
 docker run --rm `
   -v "${PWD}\flyway\sql:/flyway/sql" `
   flyway/flyway:10 `
-  -url="jdbc:mysql://host.docker.internal:13306/hwhub_db?useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Tokyo&sessionVariables=time_zone='%2B09:00'" `
+  -url="jdbc:mysql://host.docker.internal:13306/hwhub_db?useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Tokyo&sessionVariables=time_zone='+09:00'" `
   -user="hwhub" `
   -password="$DB_PASSWORD" `
   migrate
 ```
+
+#### 2-4) 削除（clean）
+基本的に実行しない。
+もし実行する場合は `-cleanDisabled=false` を付けてください。
 
 ---
 
@@ -234,7 +238,7 @@ JDBC URL には必ず以下のパラメータを含めてください。
 
 ```
 serverTimezone=Asia/Tokyo
-sessionVariables=time_zone='%2B09:00'
+sessionVariables=time_zone='+09:00'
 ```
 
 これらが無い場合、以下のカラムが **UTC で記録されてしまう事故**が発生します。
