@@ -3,7 +3,7 @@
    ============================================================ */
 
 /* ============================================================
-   0012 : プログラムタイプ
+   0012 : プログラム種別
    機能追加：Google OAuth
    ============================================================ */
 INSERT INTO m_code (
@@ -13,7 +13,7 @@ INSERT INTO m_code (
     create_user_id, create_program, created_at,
     update_user_id, update_program, updated_at
 ) VALUES
-      ('0012', 'プログラムタイプ', 'ProgramType', 'OnlAuthGgl', 'ONL_AUTH_GOOGLE',
+      ('0012', 'プログラム種別', 'ProgramType', 'OnlAuthGgl', 'ONL_AUTH_GOOGLE',
        'ONL_AUTH_GOOGLE', 'ONL_AUTH_GOOGLE', 'ONL_AUTH_GOOGLE',
        NULL, '20014',
        1, 'INIT_DATA', NOW(6),
