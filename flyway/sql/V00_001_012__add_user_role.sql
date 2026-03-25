@@ -119,4 +119,9 @@ INSERT INTO m_code (
      'ONL_ADM_INQ', 'ONL_ADM_INQ', 'ONL_ADM_INQ',
      null, '20018',
      1, 'INIT_DATA', NOW(6),
+     1, 'INIT_DATA', NOW(6)),
+    ('0012', 'プログラム種別', 'ProgramType', 'OnlAdmUsr', 'ONL_ADM_USR',
+     'ONL_ADM_USR', 'ONL_ADM_USR', 'ONL_ADM_USR',
+     null, '20019',
+     1, 'INIT_DATA', NOW(6),
      1, 'INIT_DATA', NOW(6));
