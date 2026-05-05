@@ -88,6 +88,10 @@ INSERT INTO m_code (
 /* ============================================================
    m_announcement : アナウンスマスタ
    ============================================================ */
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS m_announcement;
+SET FOREIGN_KEY_CHECKS = 1;
+
 CREATE TABLE m_announcement (
     announcement_id   BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT           COMMENT 'アナウンスID'
     , title_ja        VARCHAR(200)     NOT NULL                          COMMENT 'タイトル（日本語）'
