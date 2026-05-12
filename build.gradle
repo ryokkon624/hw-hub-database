@@ -83,6 +83,13 @@ serverTimezone=Asia/Tokyo
     ]
 }
 
+tasks.register("generateEnums", JavaExec) {
+    group = "codegen"
+    description = "Generate enum files for frontend (TypeScript) and mobile (Dart) from m_code"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.hwhub.database.tool.MultiEnumGenerator"
+}
+
 tasks.register("seedDevData", org.flywaydb.gradle.task.FlywayMigrateTask) {
     group = "flyway"
     description = "Apply dev/test-only data migrations (flyway/sql-test)."
