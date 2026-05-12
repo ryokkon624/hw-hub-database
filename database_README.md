@@ -97,6 +97,32 @@ tasks.register("seedDevData", org.flywaydb.gradle.task.FlywayMigrateTask) {
 
 ---
 
+## Enum 自動生成
+
+m_code テーブルから **frontend（TypeScript）** と **mobile（Dart）** の enum ファイルを一括生成できます。
+
+```bash
+./gradlew generateEnums
+```
+
+### 出力先
+
+| ターゲット | 出力場所 | 形式 |
+|---|---|---|
+| frontend | `build/generated/frontend/code.constants.ts` | 1 ファイルにまとめて定義 |
+| mobile | `build/generated/mobile/*.dart` | 1 enum 1 ファイル |
+
+> `build/` は `.gitignore` 対象です。生成物は各リポジトリに手動でコピーしてください。
+
+### 各リポジトリへの反映手順
+
+1. `./gradlew generateEnums` を実行
+2. `build/generated/frontend/code.constants.ts` を `hw-hub-frontend/src/constants/code.constants.ts` に上書き
+3. `build/generated/mobile/*.dart` を `hw-hub-mobile/lib/core/models/` に上書き（1 enum 1 ファイル）
+4. 各リポジトリで参照箇所を確認・修正してコミット
+
+---
+
 ## SchemaSpy（スキーマ可視化）
 
 SchemaSpy の生成物は `build/schemaspy/` 以下に出力されます。
